@@ -1,10 +1,15 @@
-import { bench, describe } from 'vitest';
+import { bench, describe, expect, afterAll } from 'vitest';
 import { spawn } from 'child_process';
+
+interface SvelteCheckResult {
+  duration: number;
+  stdout: string;
+}
 
 /**
  * Run svelte-check and measure time to completion
  */
-function runSvelteCheck(command: string): Promise<number> {
+function runSvelteCheck(command: string): Promise<SvelteCheckResult> {
   const startTime = Date.now();
   
   return new Promise((resolve, reject) => {
@@ -32,7 +37,7 @@ function runSvelteCheck(command: string): Promise<number> {
         console.error('stderr:', stderr);
         reject(new Error(`Command failed with code ${code}`));
       } else {
-        resolve(duration);
+        resolve({ duration, stdout });
       }
     });
 
@@ -43,15 +48,43 @@ function runSvelteCheck(command: string): Promise<number> {
 }
 
 describe('svelte-check performance', () => {
+  let latestOutput: string | null = null;
+  let customOutput: string | null = null;
+
   bench('npm svelte-check@latest', async () => {
-    await runSvelteCheck('npx svelte-check@latest');
+    const result = await runSvelteCheck('npx svelte-check@latest');
+    if (!latestOutput) {
+      latestOutput = result.stdout;
+    }
+    return result.duration;
   }, {
-    iterations: 100
+    iterations: 10
   });
 
   bench('our svelte-check with TSConfig excludes', async () => {
-    await runSvelteCheck('../../packages/svelte-check/bin/svelte-check');
+    const result = await runSvelteCheck('../../language-tools/packages/svelte-check/bin/svelte-check');
+    if (!customOutput) {
+      customOutput = result.stdout;
+    }
+    return result.duration;
   }, {
-    iterations: 100
+    iterations: 10
+  });
+
+  // After all benchmarks complete, assert outputs are the same
+  afterAll(() => {
+    if (latestOutput && customOutput) {
+      console.log('\n=== Comparing svelte-check outputs ===');
+      if (latestOutput === customOutput) {
+        console.log('✅ Outputs match exactly!');
+      } else {
+        console.log('❌ Outputs differ!');
+        console.log('\n--- npm svelte-check@latest output ---');
+        console.log(latestOutput);
+        console.log('\n--- custom svelte-check output ---');
+        console.log(customOutput);
+        expect(latestOutput).toBe(customOutput);
+      }
+    }
   });
 });

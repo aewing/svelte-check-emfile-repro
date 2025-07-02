@@ -30,6 +30,8 @@
     "**/*.test.js",
     "**/*.test.ts",
     "**/*.spec.js",
-    "**/*.spec.ts"
+    "**/*.spec.ts",
+    "test-project/**",
+    "temp/**"
   ]
 }

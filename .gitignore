@@ -10,6 +10,7 @@ large-excluded/
 node_modules_mock/
 temp-files/
 worktrees/
+test-project/
 
 # Benchmark temp directory
 temp/
