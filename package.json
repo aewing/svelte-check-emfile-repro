@@ -4,17 +4,19 @@
   "description": "Reproduction case for svelte-check EMFILE issue with TSConfig excludes",
   "scripts": {
     "generate-test-files": "node scripts/generate-files.js",
-    "test-emfile": "bash -c 'ulimit -n 32 && svelte-check --watch --tsconfig ./tsconfig.json'",
-    "test-emfile-npx": "bash -c 'ulimit -n 32 && npx svelte-check@latest --watch --tsconfig ./tsconfig.json'",
-    "benchmark:setup": "rm -rf temp && mkdir temp && cd temp && npx degit sveltejs/realworld . && npm i",
-    "benchmark": "npx vitest bench --run",
+    "test-emfile": "bash -c 'ulimit -n 32 && ../language-tools/packages/svelte-check/bin/svelte-check --watch --tsconfig ./tsconfig.json'",
+    "test-emfile-npm": "bash -c 'ulimit -n 32 && svelte-check --watch --tsconfig ./tsconfig.json'",
+    "benchmark:setup": "node scripts/setup-benchmark-environments.js",
+    "benchmark": "npx vitest bench benchmark.bench.ts --run",
+    "benchmark:worktree": "npx vitest bench benchmark-worktree.bench.ts --run",
+    "benchmark:unified": "npx vitest bench unified-benchmark.bench.ts --run",
+    "benchmark:all": "npm run benchmark && npm run benchmark:worktree",
     "clean": "rm -rf dist build .svelte-kit coverage large-excluded node_modules_mock temp-files worktrees src static tests temp",
-    "reset": "npm run clean && npm run generate-test-files && npm run benchmark:setup && echo 'Ready to test! Run: npm run test-emfile-npx (original) or npm run test-emfile (fixed) or npm run benchmark (compare)'"
+    "reset": "npm run clean && npm run generate-test-files && npm run benchmark:setup && echo 'Ready to test! Run: npm run test-emfile-npm (original) or npm run test-emfile (fixed) or npm run benchmark (compare)'"
   },
   "devDependencies": {
     "svelte": "latest",
-    "svelte-check": "file:../language-tools/packages/svelte-check",
-    "svelte-language-server": "file:../language-tools/packages/svelte-language-server",
+    "svelte-check": "latest",
     "typescript": "latest",
     "vitest": "^3.2.4"
   }

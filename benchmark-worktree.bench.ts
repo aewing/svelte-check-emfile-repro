@@ -1,6 +1,6 @@
-import { bench, describe, afterAll } from 'vitest';
-import { spawn, ChildProcess } from 'child_process';
-import { readFileSync, writeFileSync, readdirSync } from 'fs';
+import { bench, describe, beforeAll, afterAll } from 'vitest';
+import { spawn, ChildProcess, execSync } from 'child_process';
+import { readFileSync, writeFileSync, readdirSync, existsSync } from 'fs';
 import { join } from 'path';
 
 interface WatcherProcess {
@@ -20,13 +20,14 @@ interface BenchmarkStats {
 }
 
 const benchmarkResults: Map<string, BenchmarkStats[]> = new Map();
+const MAIN_REPO = './temp-worktrees/main-repo';
 
 /**
  * Run svelte-check in watch mode
  */
 function runSvelteCheckWatch(command: string): WatcherProcess {
   const child = spawn('bash', ['-c', `${command} --watch`], {
-    cwd: './temp',
+    cwd: MAIN_REPO,
     stdio: ['ignore', 'pipe', 'pipe']
   });
 
@@ -89,10 +90,12 @@ function getRandomSvelteFiles(count: number): string[] {
   const svelteFiles: string[] = [];
   
   function findSvelteFiles(dir: string) {
+    if (!existsSync(dir)) return;
+    
     const entries = readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
       const fullPath = join(dir, entry.name);
-      if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+      if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules' && entry.name !== 'worktrees') {
         findSvelteFiles(fullPath);
       } else if (entry.isFile() && entry.name.endsWith('.svelte')) {
         svelteFiles.push(fullPath);
@@ -100,7 +103,7 @@ function getRandomSvelteFiles(count: number): string[] {
     }
   }
 
-  findSvelteFiles('./temp/src');
+  findSvelteFiles(join(MAIN_REPO, 'src'));
   
   // Shuffle and take requested count
   const shuffled = svelteFiles.sort(() => Math.random() - 0.5);
@@ -148,7 +151,7 @@ async function runWatchModeBenchmark(command: string, label: string): Promise<Be
     // Get 50 random svelte files
     const files = getRandomSvelteFiles(50);
     
-    // Perform 100 changes in batches of 10
+    // Perform changes in batches of 10
     
     // Add spaces to files in batches
     for (let i = 0; i < files.length; i += batchSize) {
@@ -208,15 +211,22 @@ async function runWatchModeBenchmark(command: string, label: string): Promise<Be
   }
 }
 
-describe('svelte-check watch mode performance', () => {
+describe('svelte-check watch mode performance (with git worktrees)', () => {
+  beforeAll(() => {
+    // Ensure the worktree environment is set up
+    if (!existsSync(MAIN_REPO)) {
+      execSync('node scripts/setup-worktree-benchmark.js', { stdio: 'inherit' });
+    }
+  });
+
   bench('npm svelte-check@latest watch mode', async () => {
     const stats = await runWatchModeBenchmark(
-      '../node_modules/svelte-check/bin/svelte-check',
+      'node_modules/.bin/svelte-check',
       'npm-latest'
     );
     return stats.totalDuration;
   }, {
-    iterations: 5,
+    iterations: 1,
     timeout: 300000 // 5 minutes per iteration
   });
 
@@ -227,12 +237,12 @@ describe('svelte-check watch mode performance', () => {
     );
     return stats.totalDuration;
   }, {
-    iterations: 5,
+    iterations: 1,
     timeout: 300000 // 5 minutes per iteration
   });
 
   afterAll(() => {
-    console.log('\n\n=== BENCHMARK SUMMARY ===\n');
+    console.log('\n\n=== BENCHMARK SUMMARY (WITH WORKTREES) ===\n');
     
     for (const [label, runs] of benchmarkResults.entries()) {
       const avgTotal = runs.reduce((a, b) => a + b.totalDuration, 0) / runs.length;
