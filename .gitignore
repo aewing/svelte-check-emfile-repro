@@ -1,0 +1,19 @@
+node_modules/
+.DS_Store
+
+# Test files that will be generated
+dist/
+build/
+.svelte-kit/
+coverage/
+large-excluded/
+node_modules_mock/
+temp-files/
+worktrees/
+
+# Benchmark temp directory
+temp/
+benchmark-results.json
+
+# Keep the src directory for the test
+!src/

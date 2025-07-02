@@ -1,0 +1,19 @@
+{
+  "name": "svelte-check-emfile-repro",
+  "version": "1.0.0",
+  "description": "Reproduction case for svelte-check EMFILE issue with TSConfig excludes",
+  "scripts": {
+    "generate-test-files": "node scripts/generate-files.js",
+    "test-emfile": "bash -c 'ulimit -n 32 && svelte-check --watch --tsconfig ./tsconfig.json'",
+    "test-emfile-npx": "bash -c 'ulimit -n 32 && npx svelte-check@latest --watch --tsconfig ./tsconfig.json'",
+    "benchmark": "rm -rf temp && mkdir temp && cd temp && npx degit sveltejs/realworld . && cd .. && npx vitest bench --run",
+    "clean": "rm -rf dist build .svelte-kit coverage large-excluded node_modules_mock temp-files worktrees src static tests temp",
+    "reset": "npm run clean && npm run generate-test-files && echo 'Ready to test! Run: npm run test-emfile-npx (original) or npm run test-emfile (fixed)'"
+  },
+  "devDependencies": {
+    "svelte": "latest",
+    "svelte-check": "file:../packages/svelte-check",
+    "typescript": "latest",
+    "vitest": "^3.2.4"
+  }
+}
